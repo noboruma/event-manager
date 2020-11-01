@@ -1,0 +1,18 @@
+language: python
+python:
+- '3.8'
+- 3.8-dev
+install:
+- pip install -r requirements.txt
+script:
+- "./run_test.sh"
+- coverage run --source ./src src/integ_tests/integ_tests.py
+- bash <(curl -s https://codecov.io/bash)
+deploy:
+  provider: heroku
+  api_key:
+    secure: BvIT6m0u/ZGPTCRDlZ7j5gCen/KBomb4cIBvj0FGLbDP8Qa97zCA+dEqK5yiQjqim6BxbvLL2WpTLXn7Ve8++LiBWEHCYm/CgY1x3TdU9J//lD5BeBSnojNacW75wumhkU23sFrBcd+OB0qTub7RwBBk0ZBgZVlmSFP7hOgZR6l+ee+xmsPI6cLzTfotOd6PxGj5uMYuHHe0jWWXk9NdADrc+mQgaZgfP43AJipbiTjWb+u/9sp1BgooOIvRqHYa9+UB4YlsgKULiKbHPoVyFieO8d4nk7xDZemUsCtRrw4FHg9uoshyWJHYd2vV/THfrXu0WZ28Y+t5RKqjQpaojrZ4Kx9kZJXhy6Gx9KDhnkIojQZTSzm5o65949DOMlEJLqBRtctv7Gq8khoupTNI2FEpk/nP9UOLcCIdK5Wn+9YTD8QSo9Y5IQFxc1WVV/EFbd7Mq/9Omh4kx9v5v3own3y6Gw7+OPkvD++onnOV80xXIBFTUFiuqKCrr8+YgfVoxz3G556RuZ1p8CeQ+FrQGk6AGHFILwINNheG4i2AdIFe6mkV/wdEfrrUGAHN7yPWcJLsA+8tumOs5hZLrmKatE0ndh5QgS0wpMxN7TUwnd03Fe6RWxCgjymg7YBojGWV/VA3PTS6GQbL4Bj2KHkkr+HkrM8/bTpZedhSg2p3fdw=
+  app: top-event-manager
+  on:
+    branch: main
+  skip_cleanup: true
