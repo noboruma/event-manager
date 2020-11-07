@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/..")
 import server, database, email_utils, config
 
 test_account='test@test.com'
-test_event_id = 1
+test_event_id = '1'
 test_event_location = 'Tokyo'
 num_notification = 0
 num_email = 0
@@ -79,7 +79,7 @@ class TestAPIMethods(unittest.TestCase):
         resp = self.client.get("/events")
 
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(any(x["id"] == test_event_id for x in json.loads(resp.json)))
+        self.assertTrue(any(x["id"] == test_event_id for x in resp.json))
 
     def test_register_event(self):
         url = "/register/%s/%s" % (test_account, test_event_id)
@@ -103,7 +103,7 @@ class TestAPIMethods(unittest.TestCase):
         resp = self.client.get("/users/%s" % test_account)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(any(x["id"] == test_event_id for x in json.loads(resp.json)))
+        self.assertTrue(any(x["id"] == test_event_id for x in resp.json))
         self.assertFalse('London' in str(resp.data))
 
     def test_list_non_exisitng_user_events(self):
@@ -160,11 +160,11 @@ class TestAPIMethods(unittest.TestCase):
         # Check event exists
         resp = self.client.get("/events")
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(any(x["id"] == event_id for x in json.loads(resp.json)))
+        self.assertTrue(any(x["id"] == event_id for x in resp.json))
 
         resp = self.client.get("/event/%s" % event_id)
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(json.loads(resp.json)["id"] == event_id)
+        self.assertTrue(resp.json["id"] == event_id)
 
         # Delete event
         resp = self.client.delete("/event/%s" % event_id)
@@ -173,7 +173,7 @@ class TestAPIMethods(unittest.TestCase):
         # Check event has been removed
         resp = self.client.get("/events")
         self.assertEqual(resp.status_code, 200)
-        self.assertFalse(any(x["id"] == event_id for x in json.loads(resp.json)))
+        self.assertFalse(any(x["id"] == event_id for x in resp.json))
 
         resp = self.client.get("/event/%s" % event_id)
         self.assertEqual(resp.status_code, 400)

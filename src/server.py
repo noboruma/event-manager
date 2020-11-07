@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from flask import Flask, json, abort, jsonify, request
-from flask_restplus import Api, Resource, fields
+from flask_restplus import Api, Resource, fields, marshal_with
 import database, email_utils, config
 
 class Service:
@@ -20,33 +20,43 @@ class Service:
                 { 'name': fields.String(description='The name of the event', required=True),
             'location': fields.String(description='The address of the event', required=True),
             'start_timestamp': fields.String(description='Start date of the event in UTC. format:YYYY-MM-DD HH:MM:SS', required=True),
-            'end_timestampe' : fields.String(description='End date of the event in UTC. format:YYYY-MM-DD HH:MM:SS', required=True)})
+            'end_timestamp' : fields.String(description='End date of the event in UTC. format:YYYY-MM-DD HH:MM:SS', required=True)})
 
         user_model = service_api.model('User', { 'email':
             fields.String(description='Email of the user', required=True)})
 
+        event_added_response = service_api.model('EventAddedResponse', {"event_id" :
+            fields.String(description="unique identifer of the event",
+                required=True)})
+
+        event_with_metadata = service_api.inherit('EventWithMetaData', event_model, {"id" :
+            fields.String(description="unique identifer of the event",
+                required=True)})
+
         @name_space.route('/events')
         class Events(Resource):
-            @service_api.response(200, 'List of events successfully retrieved', model=[event_model])
+            @service_api.response(200, 'List of events successfully retrieved', model=[event_with_metadata])
             @service_api.response(500, 'Database error')
             @service_api.doc(description="List all events")
+            @service_api.marshal_with(event_with_metadata)
             def get(self):
                 conn = database.open_connection(db_file)
                 with conn:
-                    return json.dumps(database.list_events(conn))
+                    return database.list_events(conn), 200
                 abort(500)
 
-            @service_api.response(200, 'New event added successfully', model=service_api.model('EventId', {"event_id" : fields.String(description="unique identifer of the event", required=True)}))
+            @service_api.response(200, 'New event added successfully', model=event_added_response)
             @service_api.response(400, 'Invalid event parameters')
             @service_api.response(500, 'Database error')
-            @service_api.doc(body=event_model,
+            @service_api.doc(expect=[event_model],
                              description="Add a new event")
+            @service_api.marshal_with(event_added_response)
             def post(self):
                 conn = database.open_connection(db_file)
                 with conn:
                     try:
                         event_id = database.add_event_from_json(conn, request.json)
-                        return {'event_id': event_id}
+                        return {'event_id':event_id}, 200
                     except:
                         abort(400)
                 abort(500)
@@ -55,13 +65,14 @@ class Service:
         class Event(Resource):
             @service_api.doc(params={'event_id': 'Event unique identifier'},
                              description="Get event data from its ID")
-            @service_api.response(200, 'Event data retrieved successfully', model=event_model)
+            @service_api.response(200, 'Event data retrieved successfully', model=event_with_metadata)
             @service_api.response(500, 'Database error')
+            @service_api.marshal_with(event_with_metadata)
             def get(self, event_id):
                 conn = database.open_connection(db_file)
                 with conn:
                     try:
-                        return json.dumps(database.get_event(conn, event_id))
+                        return database.get_event(conn, event_id), 200
                     except:
                         abort(400)
                 abort(500)
@@ -85,12 +96,14 @@ class Service:
         class list_user_events(Resource):
             @service_api.doc(params={'user_email': 'Email address used to register events'},
                              description="List all the events registered by a user")
-            @service_api.response(200, 'Users\' events retrieved successfully', model=[event_model])
+            @service_api.response(200, 'Users\' events retrieved successfully',
+                    model=[event_with_metadata])
             @service_api.response(500, 'Database error')
+            @service_api.marshal_with(event_with_metadata)
             def get(self, user_email):
                 conn = database.open_connection(db_file)
                 with conn:
-                    return json.dumps(database.list_user_events(conn, user_email))
+                    return database.list_user_events(conn, user_email), 200
                 abort(500)
 
         @name_space.route('/register/<user_email>/<event_id>')
@@ -151,13 +164,14 @@ class Service:
             @service_api.response(400, 'Event does not exist')
             @service_api.response(500, 'Database error')
             @service_api.doc(description="List all users going to an event")
+            @service_api.marshal_with(user_model)
             def get(self, token, event_id):
                 conn = database.open_connection(db_file)
                 if token != secret_token:
                     abort(401)
                 with conn:
                     try:
-                        return json.dumps(database.get_users_attending_event(conn, event_id))
+                        return database.get_users_attending_event(conn, event_id), 200
                     except database.NonExistingError:
                         abort(400)
                 abort(500)
